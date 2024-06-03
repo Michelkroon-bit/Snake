@@ -1,10 +1,12 @@
 
 """
     about : pyMatrix is a pyGame matrix of n x m pixels
-    Version : 1.0.0
-    Date    : 10 April 2024
+    Version : 1.0.2
+    Date    : 11 April 2024
     
     0.3.0 : Breaking change with version 0.2.0 : drawGame is renamed to showList
+    1.0.1 : IControl added
+    1.0.2 : ShowMatrix 2 matrixes would only remember position of second one.
 """
 
 import sys
@@ -15,10 +17,11 @@ sys.path.insert(3, './/libraries/computer')
 
 from IDisplay import IDisplay
 from IInput import IInput
+from IControl import IControl
 import pygame
 
 
-class pyMatrix(IDisplay, IInput):
+class pyMatrix(IDisplay, IInput, IControl):
     """
         Matrix with dimensions width, height to simulate a Neopixel display
         This version uses X, Y position, a neopixel matrix works with an index number.
@@ -63,21 +66,7 @@ class pyMatrix(IDisplay, IInput):
         pygame.display.set_caption(caption)
         self._drawScreen()
 
-
-    def setSpeed(self, speed):
-        """
-            Change the speed
-        """
-        self._fpSpeed = speed
-
-
-    def getSpeed(self) -> int:
-        """
-        """
-        return self._fpSpeed
-
-
-    def isPosAllowed(self, posX:int, posY:int):
+    def isPosAllowed(self, posX:int, posY:int) -> bool:
         """
             True if the PosX, posY is within the boundaries of the matrix
         """
@@ -96,8 +85,28 @@ class pyMatrix(IDisplay, IInput):
         self._clock.tick(self._fpSpeed)  # max FPS = 60
         return pygame.event.get()
     
+
+    """
+                         ___ ____            _             _ 
+                        |_ _/ ___|___  _ __ | |_ _ __ ___ | |
+                         | | |   / _ \| '_ \| __| '__/ _ \| |
+                         | | |__| (_) | | | | |_| | | (_) | |
+                        |___\____\___/|_| |_|\__|_|  \___/|_|
+    """
+    def setSpeed(self, speed: int):
+        """
+            Change the speed
+        """
+        self._fpSpeed = speed
+
+
+    def getSpeed(self) -> int:
+        """
+        """
+        return self._fpSpeed
+
     
-    def quit(self):
+    def quit(self) -> None:
         """
             quit the matrix and the program
         """
@@ -147,16 +156,17 @@ class pyMatrix(IDisplay, IInput):
         e.g. [ [R, B, B], [B, R, B], [B, B, R] ]
         offsetX : x-offset of the matrix on the pyMatrix screen
         offsetY : y-offset of the matrix on the pyMatrix screen
-        """
-        self._oldPositions = set()
+        """        
         region = None
-        for y in range(len(matrix)):
-            for x in range(len(matrix[0])):
-                color = matrix[y][x]
-                if color == 0:
-                    color = self._colourBackground
-                self._oldPositions.add((offsetX + x, offsetY + y))
-                geometry = self._draw_square(offsetX + x, offsetY + y, color)
+        for y, line in enumerate(matrix):
+            for x, color in enumerate(line):
+                x1 = offsetX + x
+                y1 = offsetY + y
+                self._oldPositions.add((x1, y1))
+                
+                if 0 == color:
+                    color = self._colourBackground                
+                geometry = self._draw_square(x1, y1, color)
                 region = self._updateRegion(geometry, region)
 
         geometry = self._convertRegion2Geometry(region)
@@ -172,7 +182,7 @@ class pyMatrix(IDisplay, IInput):
         newCoordinates = set((p[0],p[1]) for p in positions )
         for x,y,c in positions:
             if colour is not None:
-                if colour == (-1,-1,-1):
+                if colour in ( (-1, -1, -1), (0, 0, 0) ):
                     c = self._colourBackground
                 else:
                     c = colour
@@ -215,7 +225,7 @@ class pyMatrix(IDisplay, IInput):
         # ---------------------
         for x,y,c in positions:
             if colour is not None:
-                if colour == (-1,-1,-1):
+                if colour in ( (-1, -1, -1), (0, 0, 0) ):
                     c = self._colourBackground
                 else:
                     c = colour
@@ -345,7 +355,7 @@ class pyMatrix(IDisplay, IInput):
                           | | | |___ ___) || |    / /   | |_| | |___| |  | | |_| |
                           |_| |_____|____/ |_|   /_/    |____/|_____|_|  |_|\___/ 
 """
-if __name__ == "__main__":
+if "__main__" == __name__:
 
     import random
     COLOUR_BACKGROUND = (100, 100, 100)  # (R, G, B)
@@ -390,7 +400,7 @@ if __name__ == "__main__":
             objectX, objectY = getRandomPos(maxX, maxY, posX, posY)
             _oldMilliseconds = milliseconds
 
-
+    
     maxX, maxY = (32,16)
     game = pyMatrix(maxX, maxY, colourBackground=COLOUR_BACKGROUND, speed=5, timed_callback=moveObject)
     game.clear((255,0,0))
@@ -414,4 +424,4 @@ if __name__ == "__main__":
                    ]
 
         game.showList(positions )
-
+    
